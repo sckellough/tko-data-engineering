@@ -1,6 +1,7 @@
 from snowflake.snowpark import Session
 import os
 from typing import Optional
+import json
 
 # Class to store a singleton connection option
 class SnowflakeConnection(object):
@@ -21,8 +22,12 @@ def get_snowpark_session() -> Session:
         # Not sure what this does?
         session = SnowflakeConnection().connection
     # if running locally with a config file
-    # TODO: Look for a creds.json style file. This should be the way all snowpark
-    # related tools work IMO
+    elif os.path.exists('./creds.json'):
+        # Look for a creds.json style file. This should be the way all snowpark
+        # related tools work IMO
+        snowpark_config = get_local_config()
+        SnowflakeConnection().connection = Session.builder.configs(snowpark_config).create()
+        
     # if using snowsql config, like snowcli does
     elif os.path.exists(os.path.expanduser('~/.snowsql/config')):
         snowpark_config = get_snowsql_config()
@@ -81,3 +86,14 @@ def get_snowsql_config(
         raise Exception(
             "Error getting snowsql config details"
         )
+
+# Read from local config file
+def get_local_config(config_file_path: str = os.path.expanduser('./creds.json')) -> dict:
+    try:
+        with open(config_file_path) as f:
+            return json.load(f)
+        
+    except Exception:
+        raise Exception (
+            "Error getting local config details"
+    )
